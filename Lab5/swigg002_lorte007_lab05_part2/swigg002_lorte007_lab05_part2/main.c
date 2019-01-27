@@ -8,12 +8,10 @@
  */
 
 #include <avr/io.h>
-enum States{Start, Init, Wait, Inc, Dec, Rest} state;
-	
-unsigned char tempA;
+enum States{Start, Init, Wait, Inc, Dec, Rest, Wait2} state;
 
 void Tick(){
-	switch(state){
+ 	switch(state){
 		case Start:
 			state = Init;
 			break;
@@ -21,26 +19,37 @@ void Tick(){
 			state = Wait;
 			break;
 		case Wait:
-			if((tempA == 0x01) && (PORTB < 0x09)){
-				state = Inc;
-				break;
-			}else if((tempA == 0x02) && (PORTB > 0x00)){
+			if(((~PINA & 0x03) == 0x01) && (PORTB < 0x09)){
+				state = Inc;		
+			}else if(((~PINA & 0x03) == 0x02) && (PORTB > 0x00)){
 				state = Dec;
-				break;
-			}else if(tempA == 0x03) {
-				state = Rest;
-				break;
 			}else{
-				state = Wait;
-			} break;
+				state = Wait2;
+			} 
+			break;
 		case Inc:
-			state = Wait;
+			PORTB = PORTB + 0x01;
+			state = Wait2;
 			break;
 		case Dec:
-			state = Wait;
+			PORTB = PORTB - 0x01;
+			state = Wait2;
 			break;
 		case Rest:
-			state = Wait;
+			PORTB = 0x00;
+			state = Wait2;
+			break;
+		case Wait2:
+			//state = (button == 0x00)? Wait: Wait2;
+			if((~PINA & 0x03) == 0x00){
+				state = Wait;
+			}
+			else if((~PINA & 0x03) == 0x03){
+				state = Rest;
+			}
+			else{
+				state = Wait2;
+			}
 			break;
 		default:
 			state = Start;
@@ -54,13 +63,12 @@ void Tick(){
 		case Wait:
 			break;
 		case Inc:
-			PORTB = PORTB + 0x01;
 			break;
 		case Dec:
-			PORTB = PORTB - 0x01;
 			break;
 		case Rest:
-			PORTB = 0x00;
+			break;
+		case Wait2:
 			break;
 		default:
 			break;
@@ -74,7 +82,6 @@ int main(void)
     /* Replace with your application code */
     
 	state = Start;
-	tempA = ~PINA;
 	while (1) 
     {
 		Tick();
